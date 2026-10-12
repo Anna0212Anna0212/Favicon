@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>圖標工坊 – Favicon 製作器</title>
+<style>
+:root{--bg:#eceff4;--pn:#fff;--tx:#14171f;--mu:#5d6475;--ac:#3b4cff;--bd:#d6dbe5;--in:#f4f6fa}
+@media(prefers-color-scheme:dark){:root{--bg:#0e1118;--pn:#171b25;--tx:#e9ecf4;--mu:#98a0b4;--bd:#2b3243;--in:#0e1118;--ac:#7c89ff}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.5 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif}
+header{padding:18px 24px 6px}h1{font-size:22px;margin:0}header p{margin:2px 0 0;color:var(--mu)}
+main{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;padding:12px 24px 40px;max-width:1280px;margin:auto}
+@media(max-width:900px){main{grid-template-columns:1fr;padding:12px}}
+.col{display:flex;flex-direction:column;gap:16px}
+details{background:var(--pn);border:1px solid var(--bd);border-radius:10px}
+summary{padding:11px 14px;font-weight:700;cursor:pointer}details>div{padding:0 14px 14px}
+.ck{background:repeating-conic-gradient(#8886 0 25%,#0000 0 50%) 0 0/14px 14px}
+#drop{min-height:200px;border:2px dashed var(--bd);border-radius:8px;display:grid;place-items:center;text-align:center;color:var(--mu);cursor:pointer;padding:8px;overflow:auto}
+#stage{max-width:100%;cursor:crosshair;touch-action:none}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+button,select,input[type=number]{font:inherit;color:var(--tx);background:var(--in);border:1px solid var(--bd);border-radius:7px;padding:5px 10px}
+button{cursor:pointer}button:hover{border-color:var(--ac)}button.on,button.pri{background:var(--ac);border-color:var(--ac);color:#fff}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--ac);outline-offset:1px}
+label.r{display:grid;grid-template-columns:84px 1fr 38px;align-items:center;gap:8px;margin:6px 0}
+label.r input[type=range]{width:100%;accent-color:var(--ac)}label.r input[type=color]{width:44px;height:26px;padding:0;border:1px solid var(--bd)}
+label.r select{grid-column:2/4}label.r output{color:var(--mu);font-size:12px;text-align:right}
+.hint{color:var(--mu);font-size:12.5px;margin:4px 0}.warn{color:#c2410c;font-weight:700;min-height:20px}
+.pads{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.pads label{font-size:12px;color:var(--mu)}.pads input{width:100%}
+.pv{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}#pv{width:256px;height:256px;border:1px solid var(--bd);border-radius:8px;cursor:grab;touch-action:none}
+.tbar{padding:8px 8px 0;border-radius:8px;margin-bottom:8px;width:240px}.tbar.l{background:#dee1e6}.tbar.d{background:#202124}
+.tab{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px 8px 0 0;font-size:12px;width:170px;white-space:nowrap;overflow:hidden}
+.l .tab{background:#fff;color:#222}.d .tab{background:#35363a;color:#eee}.tab canvas{width:16px;height:16px;flex:none}
+.strip{display:flex;align-items:flex-end;gap:12px;padding:10px;border-radius:8px;margin-top:8px;flex-wrap:wrap}.strip.l{background:#fff}.strip.d{background:#202124}
+.chips{display:flex;flex-wrap:wrap;gap:4px 12px}.chips label{display:flex;gap:4px;align-items:center}
+textarea{width:100%;height:132px;font:12px/1.4 ui-monospace,Menlo,monospace;background:var(--in);color:var(--tx);border:1px solid var(--bd);border-radius:7px;padding:8px}
+</style></head><body>
+<header><h1>圖標工坊</h1><p>去背、裁切、美化，輸出 favicon 全套尺寸與 HTML 引用碼。所有處理都在你的瀏覽器內完成，圖片不會上傳。</p></header>
+<main>
+<div class="col">
+<details open><summary>1. 載入圖片並擷取主體</summary><div>
+<div id="drop" class="ck"><div>拖曳、貼上（Ctrl+V）或點擊選擇圖片</div></div>
+<input type="file" id="file" accept="image/*" hidden>
+<div class="row" id="tools"></div>
+<div class="hint" id="hint"></div>
+<div id="tcfg"></div>
+<div class="row"><button class="pri" id="auto">自動去背</button><button id="apply">套用裁切</button><button id="clr">取消選區</button><button id="undo">復原</button><button id="reset">還原原圖</button></div>
+</div></details>
+<details open><summary>2. 預覽（可在方框上拖曳移動、滾輪縮放）</summary><div>
+<div class="pv"><div><canvas id="pv" width="256" height="256" class="ck"></canvas><div class="hint">64 以下的尺寸最能看出細節是否被糊掉</div></div>
+<div><div class="tbar l"><div class="tab"><canvas id="t1"></canvas><span class="tt"></span></div></div><div class="tbar d"><div class="tab"><canvas id="t2"></canvas><span class="tt"></span></div></div>
+<label class="r" style="grid-template-columns:60px 1fr"><span>分頁標題</span><input type="text" id="ttl" value="我的網站" style="padding:5px;border:1px solid var(--bd);border-radius:6px;background:var(--in);color:var(--tx)"></label></div></div>
+<div class="strip l" id="sl"></div><div class="strip d" id="sd"></div>
+</div></details>
+</div>
+<div class="col" id="ctl"></div>
+</main>
+<script>
+const $=s=>document.querySelector(s),mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
+const v=id=>{const e=$('#'+id);return e.type==='checkbox'?e.checked:(e.type==='range'||e.type==='number')?(+e.value||0):e.value};
+const rg=(id,l,a,b,d)=>`<label class=r><span>${l}</span><input type=range id=${id} min=${a} max=${b} value=${d}><output id=o_${id}></output></label>`,
+cl=(id,l,d)=>`<label class=r><span>${l}</span><input type=color id=${id} value=${d}></label>`,
+ck=(id,l,d)=>`<label class=r><span>${l}</span><input type=checkbox id=${id} ${d?'checked':''}></label>`,
+sl=(id,l,o)=>`<label class=r><span>${l}</span><select id=${id}>${o.map(([a,b])=>`<option value=${a}>${b}</option>`).join('')}</select></label>`,
+dt=(t,b,o=1)=>`<details ${o?'open':''}><summary>${t}</summary><div>${b}</div></details>`;
+const SZ=[16,32,48,64,96,128,180,192,256,512],DEF=[16,32,48,180,192,512];
+$('#ctl').innerHTML=
+dt('3. 位置、尺寸與留白',rg('zoom','縮放 %',20,300,100)+rg('rot','旋轉 °',-180,180,0)+
+`<div class=hint>四邊留白 %（上 右 下 左）</div><div class=pads>${[['pt','上'],['pr','右'],['pb','下'],['pl','左']].map(([i,t])=>`<label>${t}<input type=number id=${i} min=0 max=45 value=8></label>`).join('')}</div>`+
+ck('auto','自動置中主體',1)+ck('guide','顯示留白線',1)+`<div class=row><button id=rpos>重設位置與縮放</button><button id=same>四邊留白同「上」</button></div><div class=warn id=warn></div>`)+
+dt('4. 背景與外形',sl('bgm','背景',[['none','透明'],['solid','純色'],['grad','漸層']])+cl('c1','顏色 1','#ffffff')+cl('c2','顏色 2','#7c5cff')+rg('ang','漸層角度',0,360,135)+rg('rad','圓角 %',0,50,20)+`<div class=hint>圓角只會在有底色時出現；50% 為圓形。</div>`)+
+dt('5. 美化',rg('sw','描邊',0,10,0)+cl('sc','描邊色','#ffffff')+rg('shb','陰影',0,20,0)+cl('shc','陰影色','#000000')+rg('glw','外光暈',0,30,0)+cl('glc','光暈色','#ffd84d')+
+sl('fx','濾鏡',[['none','無'],['gray','黑白灰階'],['invert','反色'],['sepia','復古色調'],['gb','Game Boy 綠階'],['pixel','像素風']])+rg('pxn','像素格數',8,64,16))+
+dt('6. 匯出',`<div class=chips>${SZ.map(s=>`<label><input type=checkbox id=sz${s} ${DEF.includes(s)?'checked':''}>${s}</label>`).join('')}</div>
+<div class=row>${'<select id=fmt><option value=png>PNG</option><option value=ico>ICO（多尺寸）</option><option value=svg>SVG（內嵌點陣）</option><option value=webp>WebP</option><option value=jpg>JPG（白底）</option></select>'}<button class=pri id=exp>下載所選尺寸</button><button class=pri id=kit>網站套組 ZIP</button></div>
+<div class=hint>SVG 是把圖標內嵌為 512px 點陣，並非向量描圖。透明的 apple-touch-icon 在 iOS 上會被填成黑底，建議替它設定底色。</div>
+<textarea id="code" readonly></textarea><div class=row><button id=copy>複製引用碼</button></div>`);
+
+let orig,work,subj,hist=[],tool='wand',pts=[],drag=null,ox=0,oy=0;
+const stage=document.createElement('canvas');stage.id='stage';
+const clone=c=>{const t=mk(c.width,c.height);t.getContext('2d').drawImage(c,0,0);return t};
+const TOOLS=[['wand','魔術棒去背'],['rect','方形/圓角框'],['circle','圓形/橢圓'],['lasso','自由點選']];
+const HINT={wand:'點擊要移除的背景。AI 畫的假透明棋盤格請勾「全圖」並調高容許度。',rect:'拖曳框選要保留的區域，可用圓角調整框形。',circle:'拖曳框選要保留的圓形/橢圓區域。',lasso:'逐點點擊圍出形狀，雙擊或按「套用裁切」完成。'};
+function setTool(t){tool=t;pts=[];drag=null;$('#tools').innerHTML=TOOLS.map(([k,n])=>`<button data-t=${k} class="${k===t?'on':''}">${n}</button>`).join('');$('#hint').textContent=HINT[t];
+ $('#tcfg').innerHTML=rg('tol','容許度',1,100,18)+(t==='wand'?ck('glob','全圖相近色',0):'')+(t==='rect'?rg('crad','框圓角 %',0,50,15):'');drawStage()}
+$('#tools').onclick=e=>e.target.dataset.t&&setTool(e.target.dataset.t);
+function rr(x,X,Y,W,H,r){r=Math.min(r,W/2,H/2);x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+W,Y,X+W,Y+H,r);x.arcTo(X+W,Y+H,X,Y+H,r);x.arcTo(X,Y+H,X,Y,r);x.arcTo(X,Y,X+W,Y,r);x.closePath()}
+function path(x,k){x.beginPath();if(tool==='lasso'){if(pts.length<2)return false;pts.forEach((p,i)=>x[i?'lineTo':'moveTo'](p[0]*k,p[1]*k));x.closePath();return true}
+ if(!drag||tool==='wand')return false;const X=Math.min(drag[0],drag[2])*k,Y=Math.min(drag[1],drag[3])*k,W=Math.abs(drag[2]-drag[0])*k,H=Math.abs(drag[3]-drag[1])*k;
+ if(tool==='circle')x.ellipse(X+W/2,Y+H/2,W/2,H/2,0,0,7);else rr(x,X,Y,W,H,v('crad')/100*Math.min(W,H));return true}
+function drawStage(){const d=$('#drop');if(!work)return;if(!stage.parentNode){d.innerHTML='';d.appendChild(stage);d.style.border='0'}
+ const k=Math.min(520/work.width,420/work.height);stage.width=Math.round(work.width*k);stage.height=Math.round(work.height*k);const x=stage.getContext('2d');x.drawImage(work,0,0,stage.width,stage.height);
+ if(path(x,stage.width/work.width)){x.fillStyle='rgba(59,76,255,.25)';x.fill();x.setLineDash([6,4]);x.strokeStyle='#3b4cff';x.lineWidth=2;x.stroke()}
+ if(tool==='lasso'){x.fillStyle='#3b4cff';pts.forEach(p=>{x.beginPath();x.arc(p[0]*stage.width/work.width,p[1]*stage.width/work.width,3,0,7);x.fill()})}}
+const pos=e=>{const r=stage.getBoundingClientRect();return[(e.clientX-r.left)*work.width/r.width,(e.clientY-r.top)*work.height/r.height]};
+stage.onpointerdown=e=>{const p=pos(e);if(tool==='wand')return wand(p);if(tool==='lasso'){pts.push(p);return drawStage()}drag=[...p,...p];stage.setPointerCapture(e.pointerId)};
+stage.onpointermove=e=>{if(drag&&e.buttons){const p=pos(e);drag[2]=p[0];drag[3]=p[1];drawStage()}};
+stage.ondblclick=()=>tool==='lasso'&&applyShape();
+function push(){hist.push(clone(work));if(hist.length>15)hist.shift()}
+function applyShape(){if(!work)return;const t=mk(work.width,work.height),x=t.getContext('2d');x.save();if(!path(x,1)){x.restore();return}x.clip();push();x.drawImage(work,0,0);x.restore();work=t;pts=[];drag=null;prep()}
+const okf=(p,r,T)=>i=>{const o=i*4,a=p[o]-r[0],b=p[o+1]-r[1],c=p[o+2]-r[2];return a*a+b*b+c*c<=T*T};
+function fill(p,W,H,vis,s,r,T){const ok=okf(p,r,T),st=[];if(vis[s]||!ok(s))return;vis[s]=1;st.push(s);
+ while(st.length){const i=st.pop(),x=i%W;p[i*4+3]=0;[x>0&&i-1,x<W-1&&i+1,i>=W&&i-W,i<W*H-W&&i+W].forEach(j=>{if(j!==false&&!vis[j]&&ok(j)){vis[j]=1;st.push(j)}})}}
+function cut(fn){push();const W=work.width,H=work.height,x=work.getContext('2d'),d=x.getImageData(0,0,W,H);fn(d.data,W,H,v('tol')*4.41);x.putImageData(d,0,0);prep()}
+function wand(p){if(!work)return;cut((d,W,H,T)=>{const s=(p[1]|0)*W+(p[0]|0),r=[d[s*4],d[s*4+1],d[s*4+2]];
+ if(v('glob')){const ok=okf(d,r,T);for(let i=0;i<W*H;i++)if(ok(i))d[i*4+3]=0}else fill(d,W,H,new Uint8Array(W*H),s,r,T)})}
+$('#auto').onclick=()=>work&&cut((d,W,H,T)=>{const vis=new Uint8Array(W*H),b=[];for(let x=0;x<W;x++)b.push(x,(H-1)*W+x);for(let y=0;y<H;y++)b.push(y*W,y*W+W-1);
+ b.forEach(s=>fill(d,W,H,vis,s,[d[s*4],d[s*4+1],d[s*4+2]],T))});
+$('#apply').onclick=applyShape;$('#clr').onclick=()=>{pts=[];drag=null;drawStage()};
+$('#undo').onclick=()=>{if(hist.length){work=hist.pop();prep()}};$('#reset').onclick=()=>{if(orig){push();work=clone(orig);prep()}};
+document.onkeydown=e=>{if(e.key==='Escape'){pts=[];drag=null;drawStage()}if(e.key==='Enter'&&tool==='lasso')applyShape()};
+
+function load(f){if(!f||!f.type.startsWith('image/'))return;const im=new Image();im.onload=()=>{const k=Math.min(1,1024/Math.max(im.width,im.height));orig=mk(Math.round(im.width*k),Math.round(im.height*k));orig.getContext('2d').drawImage(im,0,0,orig.width,orig.height);work=clone(orig);hist=[];ox=oy=0;prep()};im.src=URL.createObjectURL(f)}
+$('#drop').onclick=e=>{if(!work)$('#file').click()};$('#file').onchange=e=>load(e.target.files[0]);
+$('#drop').ondragover=e=>e.preventDefault();$('#drop').ondrop=e=>{e.preventDefault();load(e.dataTransfer.files[0])};
+addEventListener('paste',e=>{const i=[...e.clipboardData.items].find(i=>i.type.startsWith('image/'));i&&load(i.getAsFile())});
+
+function prep(){if(!work)return;let b={x:0,y:0,w:work.width,h:work.height};
+ if(v('auto')){const d=work.getContext('2d').getImageData(0,0,work.width,work.height).data,W=work.width;let x0=W,y0=work.height,x1=-1,y1=-1;
+  for(let i=3,n=0;i<d.length;i+=4,n++)if(d[i]>8){const x=n%W,y=(n/W)|0;if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}
+  if(x1>=0)b={x:x0,y:y0,w:x1-x0+1,h:y1-y0+1}}
+ subj=mk(b.w,b.h);subj.getContext('2d').drawImage(work,b.x,b.y,b.w,b.h,0,0,b.w,b.h);drawStage();upd()}
+function geo(S){const pt=v('pt'),pr=v('pr'),pb=v('pb'),pl=v('pl'),aw=S*(1-(pl+pr)/100),ah=S*(1-(pt+pb)/100),a=v('rot')*Math.PI/180,cs=Math.abs(Math.cos(a)),sn=Math.abs(Math.sin(a));
+ const bw=subj.width*cs+subj.height*sn,bh=subj.width*sn+subj.height*cs,sc=Math.min(aw/bw,ah/bh)*v('zoom')/100;
+ return{sc,a,cx:S*pl/100+aw/2+ox*S,cy:S*pt/100+ah/2+oy*S,bw:bw*sc,bh:bh*sc}}
+const tint=(c,col)=>{const t=clone(c),x=t.getContext('2d');x.globalCompositeOperation='source-in';x.fillStyle=col;x.fillRect(0,0,t.width,t.height);return t};
+function render(S){const c=mk(S,S),x=c.getContext('2d'),bg=v('bgm')!=='none';
+ if(bg){x.save();rr(x,0,0,S,S,v('rad')/100*S);x.clip();
+  if(v('bgm')==='solid')x.fillStyle=v('c1');else{const a=v('ang')*Math.PI/180,dx=Math.cos(a)*S/2,dy=Math.sin(a)*S/2,g=x.createLinearGradient(S/2-dx,S/2-dy,S/2+dx,S/2+dy);g.addColorStop(0,v('c1'));g.addColorStop(1,v('c2'));x.fillStyle=g}x.fillRect(0,0,S,S)}
+ if(subj){const g=geo(S),dr=(img,X=0,Y=0)=>{x.save();x.translate(g.cx+X,g.cy+Y);x.rotate(g.a);x.scale(g.sc,g.sc);x.drawImage(img,-subj.width/2,-subj.height/2);x.restore()};
+  if(v('glw')){x.shadowColor=v('glc');x.shadowBlur=v('glw')/100*S;dr(subj);dr(subj);x.shadowColor='transparent'}
+  if(v('shb')){x.shadowColor=v('shc')+'aa';x.shadowBlur=v('shb')/100*S;x.shadowOffsetY=v('shb')/200*S;dr(subj);x.shadowColor='transparent';x.shadowOffsetY=0}
+  if(v('sw')){const s=tint(subj,v('sc')),w=v('sw')/100*S;for(let i=0;i<24;i++)dr(s,Math.cos(i*Math.PI/12)*w,Math.sin(i*Math.PI/12)*w)}
+  dr(subj)}
+ if(bg)x.restore();return fx(c,S)}
+function fx(c,S){const m=v('fx');if(m==='none')return c;const x=c.getContext('2d');
+ if(m==='pixel'){const n=v('pxn'),t=mk(n,n);t.getContext('2d').drawImage(c,0,0,n,n);x.clearRect(0,0,S,S);x.imageSmoothingEnabled=false;x.drawImage(t,0,0,S,S);return c}
+ const d=x.getImageData(0,0,S,S),p=d.data,P=[[15,56,15],[48,98,48],[139,172,15],[155,188,15]];
+ for(let i=0;i<p.length;i+=4){const r=p[i],g=p[i+1],b=p[i+2],l=.299*r+.587*g+.114*b;
+  if(m==='gray')p[i]=p[i+1]=p[i+2]=l;else if(m==='invert'){p[i]=255-r;p[i+1]=255-g;p[i+2]=255-b}
+  else if(m==='sepia'){p[i]=Math.min(255,.393*r+.769*g+.189*b);p[i+1]=Math.min(255,.349*r+.686*g+.168*b);p[i+2]=Math.min(255,.272*r+.534*g+.131*b)}
+  else{const q=P[Math.min(3,l/64|0)];p[i]=q[0];p[i+1]=q[1];p[i+2]=q[2]}}
+ x.putImageData(d,0,0);return c}
+
+const pvc=$('#pv'),dpr=Math.round(devicePixelRatio||1);let q=0;
+function upd(){cancelAnimationFrame(q);q=requestAnimationFrame(draw)}
+function draw(){document.querySelectorAll('input[type=range]').forEach(e=>{const o=$('#o_'+e.id);o&&(o.textContent=e.value)});
+ const x=pvc.getContext('2d');x.clearRect(0,0,256,256);x.drawImage(render(256),0,0);
+ if(v('guide')){x.save();x.setLineDash([4,4]);x.strokeStyle='#3b4cff';x.lineWidth=1;const l=v('pl')*2.56,t=v('pt')*2.56;x.strokeRect(l,t,256-l-v('pr')*2.56,256-t-v('pb')*2.56);x.restore()}
+ [['t1'],['t2']].forEach(([id])=>{const c=$('#'+id);c.width=c.height=16*dpr;c.getContext('2d').drawImage(render(16*dpr),0,0)});
+ document.querySelectorAll('.tt').forEach(e=>e.textContent=v('ttl'));
+ ['sl','sd'].forEach(id=>{const s=$('#'+id);if(s.children.length!==6)s.innerHTML=[16,32,48,64,128,180].map(n=>`<canvas width=${n} height=${n}></canvas>`).join('');
+  [...s.children].forEach(c=>{const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);ctx.drawImage(render(c.width),0,0)})});
+ if(subj){const g=geo(100),L=g.cx-g.bw/2,R=g.cx+g.bw/2,T=g.cy-g.bh/2,B=g.cy+g.bh/2;let m='';
+  if(L<-.5||T<-.5||R>100.5||B>100.5)m='⚠ 主體超出圖標範圍，邊緣會被裁掉';else if(L<v('pl')-.5||T<v('pt')-.5||R>100-v('pr')+.5||B>100-v('pb')+.5)m='⚠ 主體超出你設定的留白範圍';$('#warn').textContent=m}
+ $('#code').value=`<link rel="icon" href="favicon.ico" sizes="48x48">\n<link rel="icon" href="favicon.svg" type="image/svg+xml">\n<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">\n<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">\n<link rel="apple-touch-icon" href="apple-touch-icon.png">\n<link rel="manifest" href="site.webmanifest">`}
+document.addEventListener('input',e=>{if(e.target.id==='auto')prep();else upd()});
+$('#rpos').onclick=()=>{ox=oy=0;$('#zoom').value=100;$('#rot').value=0;upd()};
+$('#same').onclick=()=>{['pr','pb','pl'].forEach(i=>$('#'+i).value=v('pt'));upd()};
+pvc.onpointerdown=e=>pvc.setPointerCapture(e.pointerId);
+pvc.onpointermove=e=>{if(e.buttons&&subj){const w=pvc.getBoundingClientRect().width;ox+=e.movementX/w;oy+=e.movementY/w;upd()}};
+pvc.addEventListener('wheel',e=>{e.preventDefault();const z=$('#zoom');z.value=Math.max(20,Math.min(300,+z.value-e.deltaY/8));upd()},{passive:false});
+
+const dl=(b,n)=>{const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4e3)};
+const blobOf=(s,m)=>{let c=render(s);if(m==='image/jpeg'){const t=mk(s,s),x=t.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,s,s);x.drawImage(c,0,0);c=t}return new Promise(r=>c.toBlob(r,m,.95))};
+const u8=async b=>new Uint8Array(await b.arrayBuffer()),enc=new TextEncoder();
+const svg=()=>`<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><image width="512" height="512" href="${render(512).toDataURL()}"/></svg>`;
+async function ico(ss){const P=await Promise.all(ss.map(async s=>u8(await blobOf(s,'image/png')))),n=P.length;let off=6+16*n;const h=new DataView(new ArrayBuffer(off));h.setUint16(2,1,true);h.setUint16(4,n,true);
+ ss.forEach((s,i)=>{const o=6+16*i;h.setUint8(o,s>=256?0:s);h.setUint8(o+1,s>=256?0:s);h.setUint16(o+4,1,true);h.setUint16(o+6,32,true);h.setUint32(o+8,P[i].length,true);h.setUint32(o+12,off,true);off+=P[i].length});
+ return new Blob([h.buffer,...P],{type:'image/x-icon'})}
+function crc(u){const t=crc.t||(crc.t=Array.from({length:256},(_,n)=>{let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;return c>>>0}));let r=-1;for(const b of u)r=t[(r^b)&255]^(r>>>8);return(r^-1)>>>0}
+function zip(fs){const parts=[],cd=[];let off=0;
+ for(const f of fs){const n=enc.encode(f.name),c=crc(f.data),L=f.data.length,h=new DataView(new ArrayBuffer(30));
+  h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint32(14,c,true);h.setUint32(18,L,true);h.setUint32(22,L,true);h.setUint16(26,n.length,true);parts.push(h.buffer,n,f.data);
+  const e=new DataView(new ArrayBuffer(46));e.setUint32(0,0x02014b50,true);e.setUint16(4,20,true);e.setUint16(6,20,true);e.setUint32(16,c,true);e.setUint32(20,L,true);e.setUint32(24,L,true);e.setUint16(28,n.length,true);e.setUint32(42,off,true);cd.push(e.buffer,n);off+=30+n.length+L}
+ const cs=cd.reduce((a,b)=>a+b.byteLength,0),z=new DataView(new ArrayBuffer(22));z.setUint32(0,0x06054b50,true);z.setUint16(8,fs.length,true);z.setUint16(10,fs.length,true);z.setUint32(12,cs,true);z.setUint32(16,off,true);
+ return new Blob([...parts,...cd,z.buffer],{type:'application/zip'})}
+$('#exp').onclick=async()=>{if(!subj)return;const f=v('fmt'),ss=SZ.filter(s=>$('#sz'+s).checked);if(!ss.length)return;
+ if(f==='ico')return dl(await ico(ss.filter(s=>s<=256)),'favicon.ico');if(f==='svg')return dl(new Blob([svg()],{type:'image/svg+xml'}),'icon.svg');
+ const m={png:'image/png',webp:'image/webp',jpg:'image/jpeg'}[f],fs=await Promise.all(ss.map(async s=>({name:`icon-${s}x${s}.${f}`,blob:await blobOf(s,m)})));
+ fs.length===1?dl(fs[0].blob,fs[0].name):dl(zip(await Promise.all(fs.map(async x=>({name:x.name,data:await u8(x.blob)})))),'icons.zip')};
+$('#kit').onclick=async()=>{if(!subj)return;const fs=[],add=(name,data)=>fs.push({name,data}),P=async s=>u8(await blobOf(s,'image/png')),t=v('ttl');
+ add('favicon.ico',await u8(await ico([16,32,48])));add('favicon.svg',enc.encode(svg()));add('favicon-16x16.png',await P(16));add('favicon-32x32.png',await P(32));add('apple-touch-icon.png',await P(180));
+ add('android-chrome-192x192.png',await P(192));add('android-chrome-512x512.png',await P(512));
+ add('site.webmanifest',enc.encode(JSON.stringify({name:t,short_name:t,icons:[192,512].map(s=>({src:`android-chrome-${s}x${s}.png`,sizes:`${s}x${s}`,type:'image/png'})),display:'standalone'},null,2)));
+ add('head-snippet.html',enc.encode($('#code').value));dl(zip(fs),'favicon-kit.zip')};
+$('#copy').onclick=()=>{navigator.clipboard.writeText($('#code').value);$('#copy').textContent='已複製';setTimeout(()=>$('#copy').textContent='複製引用碼',1500)};
+setTool('wand');upd();
+</script></body></html>
